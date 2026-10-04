@@ -1,6 +1,6 @@
 # 🩸 输血是否有效预测系统
 
-基于 **AdaBoost** 最优模型构建的在线预测 Web 应用，可直接部署到
+基于 **RF** 最优模型构建的在线预测 Web 应用，可直接部署到
 **Streamlit Community Cloud**，开箱即用。
 
 ## ✨ 功能
@@ -48,12 +48,14 @@ streamlit run app.py
 
 ## ☁️ 部署到 Streamlit Community Cloud
 
-1. 新建 GitHub 仓库，将本文件夹内**所有文件**（`app.py`、`model/`、`requirements.txt`、`.streamlit/`、`README.md`、`sample_input.csv`）推送到仓库根目录；
+1. 新建 GitHub 仓库，将本文件夹内**所有文件**（`app.py`、`model/`、`fonts/`、`requirements.txt`、`.streamlit/`、`README.md`、`sample_input.csv`）推送到仓库根目录；
 2. 打开 [share.streamlit.io](https://share.streamlit.io) 并登录；
 3. 点击 **Create app** → 选择仓库 → Main file 填 `app.py` → **Deploy**；
 4. 等待自动安装依赖（约 2~3 分钟）即可访问。
 
 > ⚠️ 模型文件 `model/predict.pkl` **必须一起上传**，否则应用无法启动。
+> ⚠️ 中文字体 `fonts/NotoSansSC-Regular.otf` **也必须一起上传**：云端容器不预装中文字体库，
+> 缺少该字体时 SHAP / 校准曲线等图内的中文会渲染成方框（SIL Open Font License 1.1，允许商用与分发）。
 
 ## 📁 文件结构
 
@@ -62,6 +64,8 @@ streamlit/
 ├── app.py                  # Streamlit 应用入口（数据驱动，自动适配本次训练）
 ├── model/
 │   └── predict.pkl         # 模型包（模型+缩放器+特征元数据+阈值+字段统计）
+├── fonts/
+│   └── NotoSansSC-Regular.otf  # 开源中文字体（SIL OFL 1.1），保证云端图内中文正常显示
 ├── requirements.txt        # 依赖清单（版本与训练环境对齐）
 ├── .streamlit/
 │   └── config.toml         # 主题与服务器配置
@@ -74,9 +78,9 @@ streamlit/
 
 ## 📊 模型说明
 
-- **算法**：AdaBoost
-- **性能**：测试集 AUC=0.715；外部验证 AUC=0.713（2 个外部集）
-- **决策阈值**：0.5779（约登指数最大化最佳临床截断点）
+- **算法**：RF
+- **性能**：测试集 AUC=0.716；外部验证 AUC=0.698（2 个外部集）
+- **决策阈值**：0.6382（约登指数最大化最佳临床截断点）
 - **训练样本**：1039 例（训练 727 / 测试 312），目标「是否有效」
 - **特征数量**：9 个（由 9 个候选特征经特征筛选保留）
 - **可解释性**：内置 SHAP —— 全局（平均绝对 SHAP 条形图、蜂群图、重要性表）、
@@ -89,14 +93,14 @@ streamlit/
 - **分类指标（3 项）**：血型、性别、高血压。二分类保留 0/1 单列，多分类 drop-first 独热编码。
 - **连续指标（6 项）**：PLT、RBC、身高、输血量、DBIL、TBIL。
 
-**建模特征（9 个，编码后）**：身高、PLT、性别、RBC、TBIL、DBIL、输血量、高血压、血型_2.0
+**建模特征（9 个，编码后）**：高血压、RBC、身高、PLT、TBIL、DBIL、性别、血型_2.0、输血量
 
 ## 🔄 预测流程
 
 ```
 原始临床输入（3 个分类 + 6 个连续）→ 分类变量独热编码
 → 从 9 个候选中选取 9 个最终特征 → 缺失值均值填充
-→ Z-score 标准化 → AdaBoost 输出概率 → 与阈值 0.5779 比较 → 输出结果
+→ Z-score 标准化 → RF 输出概率 → 与阈值 0.6382 比较 → 输出结果
 ```
 
 ## ⚠️ 免责声明

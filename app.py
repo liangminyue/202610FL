@@ -2,7 +2,7 @@
 """
 输血是否有效预测系统（Streamlit Web 应用）
 ================================================================================
-基于训练好的最优模型（AdaBoost）构建的在线预测应用，可直接部署到
+基于训练好的最优模型（RF）构建的在线预测应用，可直接部署到
 Streamlit Community Cloud。
 
 运行方式：
@@ -465,8 +465,32 @@ def _apply_calibration(p):
 # ----------------------------------------------------------------------------
 @st.cache_resource(show_spinner=False)
 def _detect_cjk_font():
-    """探测可用中文字体（结果缓存，避免每次 rerun 重复扫描系统字体库）。"""
+    """探测并注册可用中文字体（结果缓存，避免每次 rerun 重复扫描字体库）。
+
+    Streamlit Cloud 等云端容器通常不预装任何中文字体库，此时只按字体名探测会全部落空，
+    matplotlib 回退到 DejaVu Sans（无 CJK 字形），图中中文会渲染成方框。因此优先加载
+    **随应用打包**在 ``fonts/`` 目录下的 Noto Sans SC（SIL Open Font License 1.1，
+    允许随应用分发）；找不到打包字体时再回退探测运行环境已安装的中文字体。
+    """
     from matplotlib import font_manager
+
+    # ① 优先：随应用打包的开源中文字体（云端部署下唯一可靠的中文渲染方案）
+    _here = os.path.dirname(os.path.abspath(__file__))
+    for _rel in ("fonts" + os.sep + "NotoSansSC-Regular.otf",
+                 "assets" + os.sep + "fonts" + os.sep + "NotoSansSC-Regular.otf"):
+        _path = os.path.join(_here, _rel)
+        if not os.path.isfile(_path):
+            continue
+        try:
+            font_manager.fontManager.addfont(_path)
+            _name = font_manager.FontProperties(fname=_path).get_name()
+            import matplotlib.pyplot as _plt
+            _plt.rcParams["font.sans-serif"] = [_name]
+            return _name
+        except Exception:
+            continue
+
+    # ② 回退：探测运行环境已安装的中文字体（本地 Windows / macOS 一般能命中）
     for f in ["SimHei", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC",
               "WenQuanYi Zen Hei", "AR PL UMing CN", "Droid Sans Fallback"]:
         try:

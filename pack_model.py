@@ -26,8 +26,8 @@ _RESULT_PARENT = os.path.dirname(_HERE)
 OUT_PKL = os.path.join(_HERE, "model", "predict.pkl")
 
 # ---------------------------------------------------------------- 模型元数据
-BEST_MODEL_NAME = "AdaBoost"
-BEST_THRESHOLD = 0.5779
+BEST_MODEL_NAME = "RF"
+BEST_THRESHOLD = 0.6382
 MODEL_PKL = "best_model.pkl"
 # 随机数生成器：与项目 config.make_rng（显式种子）同语义。打包脚本为独立脚本、
 # 不依赖项目模块，故在此就地定义（等价于 np.random.default_rng(seed)）。
@@ -37,14 +37,14 @@ SCALER_PKL = "scaler.pkl"
 # 模型权重可能已被归集到结果根目录下的附属子文件夹（config.MISC_DIRNAME，默认 other），
 # 也可能仍在结果根目录；依次探测，取第一个真正存在 best_model.pkl 的位置。
 _MISC_SUBDIR = r"other"
-RESULT_DIR = r"结果/20261004_124328_分类"
+RESULT_DIR = r"结果/20261004_143004_分类"
 for _d in [_RESULT_PARENT,
            os.path.join(_RESULT_PARENT, _MISC_SUBDIR) if _MISC_SUBDIR else "",
-           r"结果/20261004_124328_分类"]:
+           r"结果/20261004_143004_分类"]:
     if _d and os.path.exists(os.path.join(_d, MODEL_PKL)):
         RESULT_DIR = _d
         break
-FINAL_FEATURES = ['身高', 'PLT', '性别', 'RBC', 'TBIL', 'DBIL', '输血量', '高血压', '血型_2.0']
+FINAL_FEATURES = ['高血压', 'RBC', '身高', 'PLT', 'TBIL', 'DBIL', '性别', '血型_2.0', '输血量']
 CAT_BINARY_COLS = ['性别', '高血压']
 CAT_MULTI_COLS = ['血型']
 TARGET_COL = '是否有效'
