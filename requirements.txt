@@ -1,0 +1,10 @@
+# Streamlit 应用运行依赖（版本与训练环境对齐，保证模型可反序列化）
+# 界面使用了 st.segmented_control / st.container(border=True) / st.status 等 1.40+ 组件
+streamlit>=1.40
+pandas==2.3.2
+numpy==2.2.6
+scikit-learn==1.7.1
+lightgbm==4.6.0
+joblib>=1.2
+matplotlib>=3.8
+shap>=0.48.0
