@@ -26,21 +26,25 @@ _RESULT_PARENT = os.path.dirname(_HERE)
 OUT_PKL = os.path.join(_HERE, "model", "predict.pkl")
 
 # ---------------------------------------------------------------- 模型元数据
-BEST_MODEL_NAME = "CatBoost"
-BEST_THRESHOLD = 0.6533
+BEST_MODEL_NAME = "AdaBoost"
+BEST_THRESHOLD = 0.5779
 MODEL_PKL = "best_model.pkl"
+# 随机数生成器：与项目 config.make_rng（显式种子）同语义。打包脚本为独立脚本、
+# 不依赖项目模块，故在此就地定义（等价于 np.random.default_rng(seed)）。
+def make_rng(seed=None):
+    return np.random.default_rng(seed)
 SCALER_PKL = "scaler.pkl"
 # 模型权重可能已被归集到结果根目录下的附属子文件夹（config.MISC_DIRNAME，默认 other），
 # 也可能仍在结果根目录；依次探测，取第一个真正存在 best_model.pkl 的位置。
 _MISC_SUBDIR = r"other"
-RESULT_DIR = r"结果/20261004_115417_分类"
+RESULT_DIR = r"结果/20261004_124328_分类"
 for _d in [_RESULT_PARENT,
            os.path.join(_RESULT_PARENT, _MISC_SUBDIR) if _MISC_SUBDIR else "",
-           r"结果/20261004_115417_分类"]:
+           r"结果/20261004_124328_分类"]:
     if _d and os.path.exists(os.path.join(_d, MODEL_PKL)):
         RESULT_DIR = _d
         break
-FINAL_FEATURES = ['血型_2.0', '高血压', 'DBIL', '输血量', 'PLT', 'TBIL', '身高', 'RBC', '性别']
+FINAL_FEATURES = ['身高', 'PLT', '性别', 'RBC', 'TBIL', 'DBIL', '输血量', '高血压', '血型_2.0']
 CAT_BINARY_COLS = ['性别', '高血压']
 CAT_MULTI_COLS = ['血型']
 TARGET_COL = '是否有效'
@@ -169,6 +173,29 @@ def build_package():
         "bg_scaled": bg_scaled,
         "sample_input": sample_input,
     }
+    # 打包前剥离 pyarrow 依赖（同 generate_streamlit_deploy）：
+    # pandas 3.x 起字符串列默认为 ``str``（物理存储可为 pyarrow），反序列化时会强制
+    # ``import pyarrow``；未安装 pyarrow 的部署环境将在 pickle.load 处抛 ModuleNotFoundError。
+    # 统一降级为 object 列 / numpy 原生 dtype，保证模型包跨平台可反序列化。
+    def _strip_arrow(obj):
+        if isinstance(obj, pd.DataFrame):
+            out = obj.copy()
+            out.columns = pd.Index(list(out.columns), dtype=object)
+            for _c in out.columns:
+                if isinstance(out[_c].dtype, pd.StringDtype):
+                    out[_c] = out[_c].astype(object)
+            if not isinstance(out.index, pd.RangeIndex) and isinstance(out.index.dtype, pd.StringDtype):
+                out.index = pd.Index(list(out.index), dtype=object)
+            return out
+        if isinstance(obj, pd.Series):
+            return obj.astype(object) if isinstance(obj.dtype, pd.StringDtype) else obj
+        if isinstance(obj, pd.Index):
+            return pd.Index(list(obj), dtype=object) if isinstance(obj.dtype, pd.StringDtype) else obj
+        return obj
+
+    for _k in ("bg_raw", "bg_scaled", "sample_input"):
+        if isinstance(pkg.get(_k), pd.DataFrame):
+            pkg[_k] = _strip_arrow(pkg[_k])
     with open(OUT_PKL, "wb") as f:
         pickle.dump(pkg, f, protocol=pickle.HIGHEST_PROTOCOL)
     print(f"[6] 打包完成: {OUT_PKL}")
